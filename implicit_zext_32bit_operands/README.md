@@ -15,8 +15,8 @@ foo:
 	ret
 ```
 
-**Why `movzbl` and not `movzbq`?**
-**Don't we have to clear the upper 32 bits of `%rax`?**
+## Main Question
+**Why `movzbl` and not `movzbq`?** **Shouldn't we clear the upper 32 bits of `%rax`?**
 
 Section `3.4.1.1` of `Intel x86_64 Software Developer's Manual` answers the question:
 > When in 64-bit mode, operand size determines the number of valid bits in the destination general-purpose
@@ -29,9 +29,9 @@ destination general-purpose register are not modified by the operation. If the r
 operation is intended for 64-bit address calculation, explicitly sign-extend the register to the full 64-bits.
 
 **For 32-bit operands, zero-extension of upper 32 bits is done implicitly by hardware.**
-Thus `movzbl (%rdi) %eax` achieves the same data movement as `movzbq (%rdi) %rax`.
+**Thus `movzbl (%rdi) %eax` achieves the same data movement as `movzbq (%rdi) %rax`.**
 
-Using `objdump -d`, we compare the encoding of the 2 cases.
+Using `objdump -d` to compare encoding of the 2 cases:
 
 * When using `movzbq`
 ```
@@ -51,7 +51,14 @@ Using `objdump -d`, we compare the encoding of the 2 cases.
    a:	c3                   	ret
 ```
 
-**Using `movzbl` saves 1 byte of encoding!**
+**Using `movzbl` saves 1 byte of encoding**
+
+## Follow-up Questions
+
+### Q: Does `movzbl` always take 1 less byte of encoding (vs. `movzbq`)?
+* **A: Depends on the operands of `movzbl`.**
+  `movzbl (%rdi) %eax` doesn't reference registers R8-R15, so REX prefix is not prepended to instruction encoding.
+  In contrast, `movzbl (%rdi),%r8d` references register R8 and thus the REX prefix is needed (encoded to 4 bytes; 44 0f b6 07)
 
 ### Q: Why implicitly zero-extend upper 32 bits for 32-bit operands?
 
